@@ -1,0 +1,14 @@
+{
+  "name": "Clawd Run",
+  "short_name": "Clawd Run",
+  "description": "Un endless runner a pixel con la mascotte di Claude. Funziona anche senza internet.",
+  "lang": "it",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#F4EFE6",
+  "theme_color": "#D97757",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
