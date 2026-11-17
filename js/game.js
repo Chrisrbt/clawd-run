@@ -81,12 +81,13 @@ const Game = (() => {
   }));
   const rain = Array.from({ length: 80 }, () => ({ y: rand(0, H), v: rand(60, 170), seed: rand(0, 100) }));
 
-  const sunPos = () => ({ x: W - 150, y: 64 });
+  const sunPos = () => (W < 760 ? { x: W - 56, y: 76 } : { x: W - 150, y: 64 });
 
   /* ---------- layout ---------- */
   function resize() {
     const cssW = stage.clientWidth || 900;
-    scale = clamp(cssW / 900, 0.5, 1.25);
+    // sotto 0.72 i testi diventano illeggibili: sui telefoni si accorcia la pista invece di rimpicciolire tutto
+    scale = clamp(cssW / 900, 0.72, 1.25);
     W = Math.round(cssW / scale);
     dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.style.height = Math.round(H * scale) + 'px';
@@ -155,7 +156,7 @@ const Game = (() => {
   /* ---------- flusso di gioco ---------- */
   function start() {
     obstacles.length = 0; pickups.length = 0; particles.length = 0; meteors.length = 0;
-    speed = START_SPEED; dist = 0; bonus = 0; score = 0; newRecord = false;
+    speed = Math.min(START_SPEED, W * 0.56); dist = 0; bonus = 0; score = 0; newRecord = false;
     shield = false; slowT = 0; combo = 0; comboT = 0;
     Object.assign(player, { y: 0, vy: 0, ground: true, duck: false, invuln: 0, airT: 0 });
     nextObstacle = 220; nextSparks = 420; nextPower = rand(14, 22);
@@ -394,8 +395,8 @@ const Game = (() => {
       if (o.x + o.w < -40) { obstacles.splice(i, 1); continue; }
       if (!overlap(pb, rectOf(o))) continue;
       if (opusT > 0) {
-        smash(o); bonus += 15;
-        floatText('+15', o.x, o.y - 6, 'spark');
+        smash(o); bonus += 10;
+        floatText('+10', o.x, o.y - 6, 'spark');
         AudioSys.sfx.smash();
       } else if (player.invuln > 0) {
         continue;
@@ -419,7 +420,7 @@ const Game = (() => {
       if (!overlap(grab, p)) continue;
       pickups.splice(i, 1);
       if (p.kind === 'spark') {
-        const gain = opusT > 0 ? 40 : 20;
+        const gain = opusT > 0 ? 20 : 10;
         bonus += gain; combo++; comboT = 0.9;
         AudioSys.sfx.spark(combo);
         burst(p.x + 9, p.y + 9, 'spark', 7, 130);
@@ -439,7 +440,7 @@ const Game = (() => {
     }
 
     const prev = score;
-    score = Math.floor(dist / 12) + bonus;
+    score = Math.floor(dist / 20) + bonus;
     if (score !== prev) {
       if (Math.floor(score / 100) > Math.floor(prev / 100)) { hudFlash = 0.7; AudioSys.sfx.milestone(); }
       for (const key of Object.keys(MILESTONES)) {
@@ -879,5 +880,13 @@ const Game = (() => {
     },
     glitchHud(str, sec) { glitch = { text: str, t: sec || 2 }; },
     squish() { squish = 1.4; },
+    // Per i test: fa avanzare la simulazione a mano, senza aspettare requestAnimationFrame.
+    debug: {
+      tick(dt) { update(dt); draw(); },
+      get obstacles() { return obstacles; },
+      get player() { return player; },
+      get speed() { return speed; },
+      get width() { return W; },
+    },
   };
 })();

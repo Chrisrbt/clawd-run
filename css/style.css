@@ -242,11 +242,19 @@ dialog {
 
 dialog::backdrop { background: rgb(0 0 0 / 0.45); }
 
-dialog h2 { margin: 0 0 4px; font-size: 18px; }
+.egg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+dialog h2 { margin: 0; font-size: 18px; }
 .egg-intro { margin: 0 0 14px; color: var(--soft); line-height: 1.5; }
 
 #eggList {
-  margin: 0 0 16px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }

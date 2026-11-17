@@ -76,10 +76,12 @@
   <div id="toasts" role="status" aria-live="polite"></div>
 
   <dialog id="eggDialog" aria-labelledby="eggTitle">
-    <h2 id="eggTitle">Segreti</h2>
+    <div class="egg-head">
+      <h2 id="eggTitle">Segreti</h2>
+      <button id="eggClose" type="button">Chiudi</button>
+    </div>
     <p class="egg-intro">Ce ne sono nascosti un po' ovunque. Gli indizi sono vaghi apposta.</p>
     <ul id="eggList"></ul>
-    <button id="eggClose" type="button">Chiudi</button>
   </dialog>
 
   <script src="js/core.js"></script>
