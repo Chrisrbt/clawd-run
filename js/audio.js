@@ -53,6 +53,8 @@ const AudioSys = (() => {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
+    // iOS: senza questo l'audio web resta muto quando l'interruttore laterale è su "silenzioso".
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* non supportato */ }
     master = ctx.createGain();
     master.gain.value = 0.9;
     const comp = ctx.createDynamicsCompressor();
@@ -80,7 +82,7 @@ const AudioSys = (() => {
   /** Da chiamare dentro un gesto dell'utente: i browser bloccano l'audio prima. */
   function unlock() {
     if (!init()) return;
-    if (ctx.state === 'suspended' && !paused) ctx.resume();
+    if (ctx.state !== 'running' && !paused) ctx.resume().catch(() => {});
     if (!timer) {
       nextT = ctx.currentTime + 0.08;
       timer = setInterval(tick, 25);
@@ -182,8 +184,15 @@ const AudioSys = (() => {
     if (ctx) sfxBus.gain.setTargetAtTime(on ? 0.8 : 0, ctx.currentTime, 0.02);
   }
 
+  // Sul touch i browser sbloccano l'audio solo quando il dito si ALZA (pointerup/touchend/click):
+  // il pointerdown con cui si salta non basta. Quindi si riprova a ogni gesto finché non parte,
+  // e anche dopo, perché iOS può interrompere l'audio (telefonata, cambio app).
+  ['pointerup', 'touchend', 'click', 'keydown'].forEach((evt) => {
+    window.addEventListener(evt, () => { if (!ctx || ctx.state !== 'running') unlock(); }, { capture: true, passive: true });
+  });
+
   function suspend() { paused = true; if (ctx && ctx.state === 'running') ctx.suspend(); }
-  function resume() { paused = false; if (ctx && ctx.state === 'suspended') ctx.resume(); }
+  function resume() { paused = false; if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); }
 
   const ready = () => ctx && sfxOn && ctx.state === 'running';
 
@@ -241,6 +250,7 @@ const AudioSys = (() => {
     setSong(name) { song = name === 'dark' ? 'dark' : 'light'; },
     setBoost(on) { boost = on; },
     setIntensity(v) { intensity = clamp(v, 0, 1); },
+    get state() { return ctx ? ctx.state : 'none'; },
     get musicOn() { return musicOn; },
     get sfxOn() { return sfxOn; },
   };
