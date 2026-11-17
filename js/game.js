@@ -8,45 +8,56 @@ const Game = (() => {
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
   const H = 300, GY = 252, PX = 4;
-  const START_SPEED = 330, ACCEL = 5.2;
   const GRAVITY = 2300, JUMP_V = 760;
+
+  // Speed curve. Up to CRUISE it ramps linearly (the "learning" phase);
+  // past it, it never stops growing, it just slows down: dv/dt = LATE_ACCEL * (cruise / v)^2,
+  // so v^3 grows linearly with time. No ceiling, no plateau.
+  const START_SPEED = 330, CRUISE_SPEED = 860;
+  const ACCEL = 5.2, LATE_ACCEL = 1.5;
+  const MAX_STEP = 20; // max px the world may move per physics step, so nothing tunnels at high speed
+
   const HATS = ['none', 'party', 'crown', 'cowboy', 'tophat', 'prop'];
   const GLYPHS = ['{ }', '</>', '//', ';', '=>', '[ ]', '&&', '!=', '#'];
   const CONFETTI = ['#D97757', '#E3A008', '#5E8C4E', '#3B7EA1', '#E0527A', '#9B6BD6'];
 
   const DEATH = {
     any: [
-      "You're absolutely right! Quello era un ostacolo.",
-      'Funzionava sulla mia macchina.',
-      'Non è un bug, è una feature non documentata.',
-      'git blame dice che è colpa tua.',
-      'Ctrl+Z non funziona nella vita reale.',
-      'Context window: piena di rimpianti.',
-      'Lasciami ragionare passo passo… ahia.',
+      "You're absolutely right! That was an obstacle.",
+      'Works on my machine.',
+      "It's not a bug, it's an undocumented feature.",
+      'git blame says it was you.',
+      "Ctrl+Z doesn't work in real life.",
+      'Context window: full of regrets.',
+      'Let me think step by step… ouch.',
       'Segmentation fault (core dumped).',
-      'Ho finito i token. E anche le gambe.',
-      'Stack overflow. Letteralmente.',
+      'Out of tokens. And out of legs.',
+      'Stack overflow. Literally.',
     ],
-    bug: ['Un bug in produzione. Di venerdì sera.', 'Era segnato come "won\'t fix".', 'Bug riprodotto con successo.'],
-    fly: ['Bug volante: nessun test lo copriva.', 'Quello non era nei requisiti.'],
-    win: ['Errore non gestito. Come sempre.', 'Hai provato a spegnere e riaccendere?', 'Uncaught Exception: Clawd.'],
-    sign: ['Ostacolo non trovato. Ah no, trovato.', 'undefined is not a function.', 'Il cartello diceva tutto.'],
+    bug: ['A bug in production. On a Friday night.', "It was marked won't fix.", 'Bug successfully reproduced.'],
+    fly: ['Flying bug: zero test coverage.', "That wasn't in the requirements."],
+    win: ['Unhandled exception. As usual.', 'Have you tried turning it off and on again?', 'Uncaught Exception: Clawd.'],
+    sign: ['Obstacle not found. Oh wait, found it.', 'undefined is not a function.', 'The sign said it all.'],
   };
 
   const MILESTONES = {
-    250: 'Riscaldamento completato',
-    500: 'Marcia Haiku: veloce',
-    1500: 'Marcia Sonnet: più veloce',
-    2500: 'Marcia Opus: buona fortuna',
-    5000: 'Ok, adesso stai esagerando',
+    250: 'Warm-up complete',
+    500: 'Haiku gear: fast',
+    1500: 'Sonnet gear: faster',
+    2500: 'Opus gear: good luck',
+    5000: "Okay, now you're showing off",
+    10000: 'Still accelerating. Are you?',
+    25000: 'Clawd needs a water break',
+    50000: 'Legend status',
+    100000: 'Please go outside',
   };
 
-  /* ---------- eventi verso l'esterno (UI ed easter egg) ---------- */
+  /* ---------- events for the UI and easter eggs ---------- */
   const listeners = {};
   const on = (evt, fn) => { (listeners[evt] = listeners[evt] || []).push(fn); };
   const emit = (evt, ...args) => { (listeners[evt] || []).forEach((fn) => fn(...args)); };
 
-  /* ---------- stato ---------- */
+  /* ---------- state ---------- */
   let W = 900, scale = 1, dpr = 1;
   let state = 'title'; // title | playing | paused | over
   let themeTarget = document.documentElement.dataset.theme === 'dark' ? 1 : 0;
@@ -55,7 +66,8 @@ const Game = (() => {
 
   let time = 0, scroll = 0;
   let speed = 0, dist = 0, bonus = 0, score = 0;
-  let hi = Store.get('hi', 0);
+  let best = Store.get('hi', 0);
+  let last = Store.get('last', null);
   let newRecord = false;
   let overT = 0, overMsg = '';
   let idleT = 0, sleeping = false, zT = 0;
@@ -86,7 +98,7 @@ const Game = (() => {
   /* ---------- layout ---------- */
   function resize() {
     const cssW = stage.clientWidth || 900;
-    // sotto 0.72 i testi diventano illeggibili: sui telefoni si accorcia la pista invece di rimpicciolire tutto
+    // below 0.72 the text gets unreadable: on phones the track gets shorter instead of everything shrinking
     scale = clamp(cssW / 900, 0.72, 1.25);
     W = Math.round(cssW / scale);
     dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -95,7 +107,29 @@ const Game = (() => {
     canvas.height = Math.round(H * scale * dpr);
   }
 
-  /* ---------- disegno: utilità ---------- */
+  /**
+   * On a narrow (phone) track obstacles are visible for less time, so the whole
+   * curve is scaled down to keep the same reaction window as on desktop.
+   */
+  function speedProfile() {
+    const k = Math.min(1, (W * 1.05) / CRUISE_SPEED);
+    const start = Math.min(START_SPEED, W * 0.56);
+    const cruise = Math.max(start + 60, CRUISE_SPEED * k);
+    return { k, start, cruise };
+  }
+
+  function accelerate(g) {
+    const p = speedProfile();
+    if (speed < p.cruise) {
+      const a = (ACCEL * (p.cruise - p.start)) / (CRUISE_SPEED - START_SPEED);
+      speed = Math.min(p.cruise, speed + a * g);
+    } else {
+      speed += LATE_ACCEL * p.k * (p.cruise / speed) ** 2 * g;
+    }
+    AudioSys.setIntensity((speed - p.start) / (p.cruise - p.start));
+  }
+
+  /* ---------- drawing helpers ---------- */
   function text(str, x, y, size, color, align, weight) {
     ctx.font = `${weight || 700} ${size}px ${FONT}`;
     ctx.fillStyle = color;
@@ -117,7 +151,7 @@ const Game = (() => {
 
   const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
-  /* ---------- particelle ---------- */
+  /* ---------- particles ---------- */
   function burst(x, y, color, n, spd) {
     for (let i = 0; i < n; i++) {
       particles.push({
@@ -149,14 +183,14 @@ const Game = (() => {
     }
   }
 
-  /* ---------- messaggi sopra il gioco ---------- */
+  /* ---------- messages over the game ---------- */
   const say = (str, sec) => { bubble = { text: str, t: sec || 2.4 }; };
   const showBanner = (str, sec) => { banner = { text: str, t: 0, dur: sec || 2.6 }; };
 
-  /* ---------- flusso di gioco ---------- */
+  /* ---------- game flow ---------- */
   function start() {
     obstacles.length = 0; pickups.length = 0; particles.length = 0; meteors.length = 0;
-    speed = Math.min(START_SPEED, W * 0.56); dist = 0; bonus = 0; score = 0; newRecord = false;
+    speed = speedProfile().start; dist = 0; bonus = 0; score = 0; newRecord = false;
     shield = false; slowT = 0; combo = 0; comboT = 0;
     Object.assign(player, { y: 0, vy: 0, ground: true, duck: false, invuln: 0, airT: 0 });
     nextObstacle = 220; nextSparks = 420; nextPower = rand(14, 22);
@@ -172,7 +206,9 @@ const Game = (() => {
   function die(o) {
     state = 'over';
     overT = 0; shake = 0.3; flash = 0.14;
-    if (score > hi) { hi = score; newRecord = true; Store.set('hi', hi); }
+    last = score;
+    Store.set('last', last);
+    if (score > best) { best = score; newRecord = true; Store.set('hi', best); }
     overMsg = Math.random() < 0.45 && DEATH[o.kind] ? pick(DEATH[o.kind]) : pick(DEATH.any);
     opusT = 0; slowT = 0; bubble = null;
     AudioSys.sfx.hit();
@@ -180,7 +216,7 @@ const Game = (() => {
     AudioSys.setBoost(false);
     AudioSys.setMode('over');
     burst(player.x + 28, GY - player.y - 20, 'clawd', 14, 190);
-    emit('over', score, o.kind);
+    emit('over', score, o.kind, newRecord);
   }
 
   function togglePause() {
@@ -190,7 +226,7 @@ const Game = (() => {
 
   function wake() {
     idleT = 0;
-    if (sleeping) { sleeping = false; say('Eh? Ero sveglissimo.'); }
+    if (sleeping) { sleeping = false; say('Huh? I was totally awake.'); }
   }
 
   function pressJump() {
@@ -205,13 +241,13 @@ const Game = (() => {
   function releaseJump() { jumpHeld = false; }
   function setDuck(v) { player.wantDuck = v; }
 
-  /* ---------- generazione del mondo ---------- */
+  /* ---------- world generation ---------- */
   const rectOf = (o) => ({
     x: o.x + o.inset[0], y: o.y + o.inset[1],
     w: o.w - o.inset[0] - o.inset[2], h: o.h - o.inset[1] - o.inset[3],
   });
 
-  // Nessun token appoggiato dentro un ostacolo: sarebbe un'esca sleale.
+  // No token sitting inside an obstacle: that would be an unfair trap.
   function liftPickup(p) {
     for (const o of obstacles) {
       if (p.x + p.w > o.x - 30 && p.x < o.x + o.w + 30 && p.y + p.h > o.y - 34 && p.y < o.y + o.h + 30) {
@@ -242,6 +278,7 @@ const Game = (() => {
     o.x = W + 30;
     obstacles.push(o);
     pickups.forEach(liftPickup);
+    // gaps are measured in seconds of travel, so they stay fair at any speed
     nextObstacle = o.w + speed * 0.7 + 100 + Math.random() * speed * 0.75;
   }
 
@@ -273,7 +310,7 @@ const Game = (() => {
     burst(o.x + o.w / 2, o.y + o.h / 2, o.kind === 'win' || o.kind === 'sign' ? 'ink' : 'bug', 12, 200);
   }
 
-  /* ---------- fisica del giocatore ---------- */
+  /* ---------- player physics ---------- */
   function playerBox() {
     return player.duck
       ? { x: player.x + 8, y: GY - player.y - 22, w: 48, h: 20 }
@@ -301,7 +338,7 @@ const Game = (() => {
     }
   }
 
-  /* ---------- aggiornamento ---------- */
+  /* ---------- update ---------- */
   function update(dt) {
     if (themeT !== themeTarget) {
       const d = dt / 0.6;
@@ -359,7 +396,9 @@ const Game = (() => {
       }
       stepPlayer(dt, dt);
     } else if (state === 'playing') {
-      updatePlay(dt, g);
+      // sub-steps: at high speed one frame could jump an obstacle straight through Clawd
+      const steps = Math.max(1, Math.ceil((speed * g) / MAX_STEP));
+      for (let i = 0; i < steps && state === 'playing'; i++) updatePlay(dt / steps, g / steps);
     } else if (state === 'over') {
       overT += dt;
     }
@@ -369,16 +408,14 @@ const Game = (() => {
     if (slowT > 0) { slowT -= dt; if (slowT <= 0) AudioSys.setSlow(false); }
     if (opusT > 0) {
       opusT -= dt;
-      if (opusT <= 0) { AudioSys.setBoost(false); say('Crediti Opus esauriti.'); player.invuln = 1.2; }
+      if (opusT <= 0) { AudioSys.setBoost(false); say('Opus credits used up.'); player.invuln = 1.2; }
     }
     player.invuln = Math.max(0, player.invuln - dt);
     comboT -= dt;
     if (comboT <= 0) combo = 0;
 
-    const maxSpeed = Math.min(860, W * 1.05);
-    speed = Math.min(maxSpeed, speed + ACCEL * g);
+    accelerate(g);
     dist += speed * g;
-    AudioSys.setIntensity((speed - START_SPEED) / (860 - START_SPEED));
 
     stepPlayer(g, dt);
     if (player.ground) player.anim += (g * speed) / 26;
@@ -404,7 +441,7 @@ const Game = (() => {
         shield = false; player.invuln = 1.2;
         smash(o);
         AudioSys.sfx.shieldBreak();
-        say('catch (e) { /* fiuu */ }', 1.8);
+        say('catch (e) { /* phew */ }', 1.8);
       } else {
         die(o);
         return;
@@ -450,7 +487,7 @@ const Game = (() => {
     }
   }
 
-  /* ---------- disegno: mondo ---------- */
+  /* ---------- drawing: world ---------- */
   function drawSky() {
     if (themeT > 0.01) {
       for (const s of stars) {
@@ -605,7 +642,7 @@ const Game = (() => {
     }
   }
 
-  /* ---------- disegno: Clawd ---------- */
+  /* ---------- drawing: Clawd ---------- */
   function clawdSprite() {
     if (state === 'over') return SPR.dead;
     if (sleeping) return SPR.blink;
@@ -686,12 +723,13 @@ const Game = (() => {
     ctx.globalAlpha = 1;
   }
 
-  /* ---------- disegno: interfaccia ---------- */
+  /* ---------- drawing: interface ---------- */
   const pad = (n) => String(Math.max(0, n)).padStart(5, '0');
 
   function drawHud() {
     if (state === 'title') {
-      if (hi > 0) text('RECORD ' + pad(hi), W - 16, 28, 13, pal.soft, 'right');
+      if (best > 0) text('BEST ' + pad(best), W - 16, 28, 13, pal.soft, 'right');
+      if (last !== null) text('LAST ' + pad(last), W - 16, 46, 13, pal.soft, 'right');
       return;
     }
     if (glitch) {
@@ -699,7 +737,9 @@ const Game = (() => {
     } else {
       const blink = hudFlash > 0 && Math.floor(hudFlash * 10) % 2 === 0;
       if (!blink) text(pad(score), W - 16, 28, 18, pal.ink, 'right');
-      text('RECORD ' + pad(Math.max(hi, score)), W - 86, 27, 12, pal.soft, 'right');
+      ctx.font = `700 18px ${FONT}`;
+      const sw = ctx.measureText(pad(score)).width;
+      text('HI ' + pad(Math.max(best, score)), W - 30 - sw, 27, 12, pal.soft, 'right');
     }
 
     let y = 26;
@@ -713,7 +753,7 @@ const Game = (() => {
       ctx.fillRect(16, y + 5, 86 * (slowT / 5), 3);
       y += 22;
     }
-    if (shield) text('{ } scudo', 16, y, 13, pal.accent);
+    if (shield) text('{ } shield', 16, y, 13, pal.accent);
   }
 
   function drawBanner() {
@@ -739,25 +779,25 @@ const Game = (() => {
     const small = W < 760;
     if (state === 'title') {
       bigTitle('CLAWD RUN', 100, small ? 38 : 48);
-      text('Niente internet? Meglio. Si corre.', cx, 128, 13, pal.soft, 'center', 500);
+      text('No internet? Even better. Run.', cx, 128, 13, pal.soft, 'center', 500);
       if (Math.floor(time * 1.7) % 2 === 0) {
-        text(isTouch ? 'TOCCA PER INIZIARE' : 'PREMI SPAZIO PER INIZIARE', cx, 164, 13, pal.ink, 'center');
+        text(isTouch ? 'TAP TO START' : 'PRESS SPACE TO START', cx, 164, 13, pal.ink, 'center');
       }
     } else if (state === 'over') {
       bigTitle('GAME OVER', 92, small ? 30 : 36);
       text(overMsg, cx, 120, small ? 11 : 13, pal.soft, 'center', 500);
-      if (newRecord) text('NUOVO RECORD: ' + score + ' TOKEN', cx, 148, 14, pal.clawd, 'center');
-      else text(score + ' token  ·  record ' + hi, cx, 148, 13, pal.ink, 'center');
+      if (newRecord) text('NEW RECORD: ' + score + ' TOKENS', cx, 148, 14, pal.clawd, 'center');
+      else text(score + ' tokens  ·  best ' + best, cx, 148, 13, pal.ink, 'center');
       if (overT > 0.6 && Math.floor(time * 1.7) % 2 === 0) {
-        text(isTouch ? 'TOCCA PER RIPROVARE' : 'SPAZIO PER RIPROVARE', cx, 178, 12, pal.ink, 'center');
+        text(isTouch ? 'TAP TO RETRY' : 'SPACE TO RETRY', cx, 178, 12, pal.ink, 'center');
       }
     } else if (state === 'paused') {
       ctx.globalAlpha = 0.72;
       ctx.fillStyle = pal.bg;
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
-      bigTitle('PAUSA', 130, 36);
-      text('Clawd riprende fiato. Premi P o salta per continuare.', cx, 160, small ? 11 : 13, pal.soft, 'center', 500);
+      bigTitle('PAUSED', 130, 36);
+      text('Clawd is catching its breath. Press P or jump to resume.', cx, 160, small ? 11 : 13, pal.soft, 'center', 500);
     }
   }
 
@@ -835,11 +875,11 @@ const Game = (() => {
     pressJump();
   }
 
-  /* ---------- avvio ---------- */
-  let last = performance.now();
+  /* ---------- main loop ---------- */
+  let lastFrame = performance.now();
   function frame(now) {
-    const dt = Math.min(0.033, Math.max(0, (now - last) / 1000));
-    last = now;
+    const dt = Math.min(0.033, Math.max(0, (now - lastFrame) / 1000));
+    lastFrame = now;
     update(dt);
     draw();
     requestAnimationFrame(frame);
@@ -858,12 +898,19 @@ const Game = (() => {
   resize();
   requestAnimationFrame(frame);
 
-  /* ---------- API pubblica ---------- */
+  /* ---------- public API ---------- */
   return {
     on, say, pressJump, releaseJump, setDuck, togglePause,
     banner: showBanner,
     get state() { return state; },
     get score() { return score; },
+    get best() { return best; },
+    get last() { return last; },
+    resetRecords() {
+      best = 0; last = null;
+      Store.set('hi', 0);
+      Store.set('last', null);
+    },
     setTheme(name) { themeTarget = name === 'dark' ? 1 : 0; },
     opus(sec) {
       opusT = sec || 9;
@@ -880,12 +927,13 @@ const Game = (() => {
     },
     glitchHud(str, sec) { glitch = { text: str, t: sec || 2 }; },
     squish() { squish = 1.4; },
-    // Per i test: fa avanzare la simulazione a mano, senza aspettare requestAnimationFrame.
+    // For tests: advance the simulation by hand, without waiting for requestAnimationFrame.
     debug: {
       tick(dt) { update(dt); draw(); },
       get obstacles() { return obstacles; },
       get player() { return player; },
       get speed() { return speed; },
+      set speed(v) { speed = v; },
       get width() { return W; },
     },
   };

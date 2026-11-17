@@ -1,28 +1,30 @@
 # Clawd Run
 
-Un endless runner a pixel con la mascotte di Claude: salta i bug, schiva le finestre di errore, raccogli token. Tutto in HTML, CSS e JavaScript puro, senza dipendenze e senza file audio (la musica è sintetizzata al volo), quindi funziona anche offline.
+A pixel endless runner starring Claude's mascot: jump over bugs, dodge error windows, collect tokens. Plain HTML, CSS and JavaScript with no dependencies and no audio files (the music is synthesised on the fly), so it works offline too.
 
-**Gioca subito: https://chrisrbt.github.io/clawd-run/**
+**Play now: https://chrisrbt.github.io/clawd-run/**
 
-## Come si gioca
+## How to play
 
-Apri il link qui sopra, oppure `index.html` nel browser in locale.
+Open the link above, or open `index.html` in a browser locally.
 
-| Tasto | Azione |
+| Key | Action |
 | --- | --- |
-| Spazio / ↑ | salta (tieni premuto per saltare più in alto) |
-| ↓ | abbassati (in aria: scendi più in fretta) |
-| P | pausa |
-| T | tema chiaro / scuro |
-| M / F | musica / effetti |
+| Space / ↑ | jump (hold to jump higher) |
+| ↓ | duck (in the air: drop faster) |
+| P | pause |
+| T | light / dark theme |
+| M / F | music / sound effects |
 
-Su touch: tocca per saltare, tieni premuta la freccia per abbassarti.
+On touch screens: tap to jump, hold the arrow button to duck.
 
-## Cosa c'è dentro
+## What's inside
 
-- Tema chiaro e scuro, con musica diversa per ciascuno
-- Potenziamenti: scudo `{ }` ed "extended thinking" (rallentatore)
-- 14 segreti nascosti: il contatore in basso a destra dà gli indizi
-- Service worker: dopo la prima visita parte anche senza rete
+- The speed never stops rising: fast at first, then more slowly, but it never plateaus
+- Records saved on your device: best score, last run, total runs and a top 10 with dates
+- Light and dark theme, each with its own music
+- Power-ups: a `{ }` shield and "extended thinking" (slow motion)
+- 14 hidden secrets: the counter in the bottom-right corner gives hints
+- Service worker: after the first visit it starts even with no network
 
-Progetto amatoriale, non ufficiale e non affiliato ad Anthropic.
+A fan project, unofficial and not affiliated with Anthropic.

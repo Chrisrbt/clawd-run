@@ -1,13 +1,13 @@
 'use strict';
 
-/* Tutto l'audio è sintetizzato al volo con la Web Audio API:
-   nessun file da scaricare, quindi funziona anche offline. */
+/* All audio is synthesised on the fly with the Web Audio API:
+      no files to download, so it works offline too. */
 
 const AudioSys = (() => {
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  // Due brani originali: uno solare per il tema chiaro, uno notturno per quello scuro.
-  // Ogni battuta ha 8 crome; 0 = pausa. I numeri sono note MIDI.
+  // Two original tunes: a sunny one for the light theme, a nocturnal one for the dark theme.
+  // Each bar has 8 eighth notes; 0 = rest. Numbers are MIDI notes.
   const SONGS = {
     light: {
       lead: 'square', leadVol: 0.075,
@@ -53,8 +53,8 @@ const AudioSys = (() => {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
-    // iOS: senza questo l'audio web resta muto quando l'interruttore laterale è su "silenzioso".
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* non supportato */ }
+    // iOS: without this, web audio stays muted when the side switch is set to silent.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* not supported */ }
     master = ctx.createGain();
     master.gain.value = 0.9;
     const comp = ctx.createDynamicsCompressor();
@@ -79,7 +79,7 @@ const AudioSys = (() => {
     return true;
   }
 
-  /** Da chiamare dentro un gesto dell'utente: i browser bloccano l'audio prima. */
+  /** Call inside a user gesture: browsers block audio before one. */
   function unlock() {
     if (!init()) return;
     if (ctx.state !== 'running' && !paused) ctx.resume().catch(() => {});
@@ -184,9 +184,9 @@ const AudioSys = (() => {
     if (ctx) sfxBus.gain.setTargetAtTime(on ? 0.8 : 0, ctx.currentTime, 0.02);
   }
 
-  // Sul touch i browser sbloccano l'audio solo quando il dito si ALZA (pointerup/touchend/click):
-  // il pointerdown con cui si salta non basta. Quindi si riprova a ogni gesto finché non parte,
-  // e anche dopo, perché iOS può interrompere l'audio (telefonata, cambio app).
+  // On touch devices browsers unlock audio only when the finger LIFTS (pointerup/touchend/click):
+  // the pointerdown used to jump is not enough. So retry on every gesture until it runs,
+  // and keep doing it afterwards, because iOS can interrupt audio (phone call, app switch).
   ['pointerup', 'touchend', 'click', 'keydown'].forEach((evt) => {
     window.addEventListener(evt, () => { if (!ctx || ctx.state !== 'running') unlock(); }, { capture: true, passive: true });
   });

@@ -1,5 +1,5 @@
-/* Service worker: dopo la prima visita il gioco parte anche senza rete. */
-const CACHE = 'clawd-run-v1';
+/* Service worker: after the first visit the game starts even with no network. */
+const CACHE = 'clawd-run-v2';
 const ASSETS = [
   './',
   'index.html',
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Prima la rete (così gli aggiornamenti arrivano subito), poi la cache se la rete non c'è.
+// Network first (so updates arrive right away), cache when there is no network.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;

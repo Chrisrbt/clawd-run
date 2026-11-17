@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Clawd Run</title>
-  <meta name="description" content="Un endless runner a pixel con la mascotte di Claude. Funziona anche senza internet.">
+  <meta name="description" content="A pixel endless runner starring Claude's mascot. Works without internet, too.">
   <meta name="theme-color" content="#F4EFE6">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <script>
-    // Applica il tema prima del primo paint, così non c'è il lampo bianco.
+    // Apply the theme before first paint, so there is no white flash.
     (function () {
       var t = null;
       try { t = JSON.parse(localStorage.getItem('clawd.theme')); } catch (e) {}
@@ -26,61 +26,83 @@
     <header class="top">
       <div class="status">
         <span class="dot" aria-hidden="true"></span>
-        <span id="netLabel">Nessuna connessione. Perfetto così.</span>
+        <span id="netLabel">No connection. Perfect.</span>
         <span class="code">ERR_CLAWD_WENT_FOR_A_RUN</span>
       </div>
       <div class="tools">
-        <button class="tool" id="btnTheme" type="button" title="Tema chiaro/scuro (T)" aria-label="Cambia tema">
+        <button class="tool" id="btnTheme" type="button" title="Light/dark theme (T)" aria-label="Change theme">
           <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
           <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>
         </button>
-        <button class="tool" id="btnMusic" type="button" title="Musica (M)" aria-label="Musica" aria-pressed="true">
+        <button class="tool" id="btnMusic" type="button" title="Music (M)" aria-label="Music" aria-pressed="true">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 18V5.5l10-2V16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.8" fill="currentColor"/><circle cx="16.5" cy="16" r="2.8" fill="currentColor"/></svg>
         </button>
-        <button class="tool" id="btnSfx" type="button" title="Effetti sonori (F)" aria-label="Effetti sonori" aria-pressed="true">
+        <button class="tool" id="btnSfx" type="button" title="Sound effects (F)" aria-label="Sound effects" aria-pressed="true">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.6 7.6 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <button class="tool" id="btnPause" type="button" title="Pausa (P)" aria-label="Pausa">
+        <button class="tool" id="btnPause" type="button" title="Pause (P)" aria-label="Pause">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
         </button>
       </div>
     </header>
 
     <div class="stage" id="stage">
-      <canvas id="game" width="900" height="300" role="img" aria-label="Clawd Run: salta gli ostacoli con Spazio, abbassati con Freccia giù"></canvas>
-      <button class="duck-btn" id="btnDuck" type="button" aria-label="Abbassati">
+      <canvas id="game" width="900" height="300" role="img" aria-label="Clawd Run: jump over obstacles with Space, duck with the down arrow"></canvas>
+      <button class="duck-btn" id="btnDuck" type="button" aria-label="Duck">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v13M6 12.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
     <footer class="bottom">
       <p class="keys keys-desktop">
-        <span><kbd>Spazio</kbd> salta</span>
-        <span><kbd>↓</kbd> abbassati</span>
-        <span><kbd>P</kbd> pausa</span>
-        <span><kbd>T</kbd> tema</span>
-        <span><kbd>M</kbd> musica</span>
-        <span><kbd>F</kbd> effetti</span>
+        <span><kbd>Space</kbd> jump</span>
+        <span><kbd>↓</kbd> duck</span>
+        <span><kbd>P</kbd> pause</span>
+        <span><kbd>T</kbd> theme</span>
+        <span><kbd>M</kbd> music</span>
+        <span><kbd>F</kbd> sound</span>
       </p>
       <p class="keys keys-touch">
-        <span>Tocca per saltare</span>
-        <span>Tieni premuta la freccia per abbassarti</span>
+        <span>Tap to jump</span>
+        <span>Hold the arrow to duck</span>
       </p>
-      <button class="eggs" id="btnEggs" type="button" title="Segreti trovati">
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.3 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.3 8.4 3 12 3z" fill="currentColor"/></svg>
-        Segreti <span id="eggCount">0/14</span>
-      </button>
+      <div class="pills">
+        <button class="pill" id="btnRecords" type="button" title="Your records">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 3h10v3a5 5 0 0 1-10 0zM7 4.5H4v1.5a3 3 0 0 0 3 3M17 4.5h3v1.5a3 3 0 0 1-3 3M12 11v5M8 20h8l-1-4H9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          Records
+        </button>
+        <button class="pill" id="btnEggs" type="button" title="Secrets found">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.3 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.3 8.4 3 12 3z" fill="currentColor"/></svg>
+          Secrets <span id="eggCount">0/14</span>
+        </button>
+      </div>
     </footer>
   </main>
 
   <div id="toasts" role="status" aria-live="polite"></div>
 
-  <dialog id="eggDialog" aria-labelledby="eggTitle">
-    <div class="egg-head">
-      <h2 id="eggTitle">Segreti</h2>
-      <button id="eggClose" type="button">Chiudi</button>
+  <dialog id="recDialog" aria-labelledby="recTitle">
+    <div class="dlg-head">
+      <h2 id="recTitle">Records</h2>
+      <button class="dlg-close" type="button">Close</button>
     </div>
-    <p class="egg-intro">Ce ne sono nascosti un po' ovunque. Gli indizi sono vaghi apposta.</p>
+    <p class="dlg-intro">Saved on this device, so they survive closing the tab.</p>
+    <div class="rec-stats">
+      <div><span>Best</span><strong id="recBest">0</strong></div>
+      <div><span>Last run</span><strong id="recLast">–</strong></div>
+      <div><span>Runs</span><strong id="recPlays">0</strong></div>
+    </div>
+    <h3>Top 10</h3>
+    <ol id="recList"></ol>
+    <button class="link-btn" id="recReset" type="button">Reset records</button>
+  </dialog>
+
+  <dialog id="eggDialog" aria-labelledby="eggTitle">
+    <div class="dlg-head">
+      <h2 id="eggTitle">Secrets</h2>
+      <button class="dlg-close" type="button">Close</button>
+    </div>
+    <p class="dlg-intro">They're hidden all over the place. The hints are vague on purpose.</p>
     <ul id="eggList"></ul>
   </dialog>
 

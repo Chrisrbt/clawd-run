@@ -1,8 +1,8 @@
 {
   "name": "Clawd Run",
   "short_name": "Clawd Run",
-  "description": "Un endless runner a pixel con la mascotte di Claude. Funziona anche senza internet.",
-  "lang": "it",
+  "description": "A pixel endless runner starring Claude's mascot. Works without internet, too.",
+  "lang": "en",
   "start_url": ".",
   "display": "standalone",
   "orientation": "landscape",

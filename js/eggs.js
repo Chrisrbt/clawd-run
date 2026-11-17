@@ -1,23 +1,23 @@
 'use strict';
 
-/* Easter egg. Se stai leggendo questo file per trovarli tutti: bravo, ma è barare. */
+/* Easter eggs. If you're reading this file to find them all: well done, but that's cheating. */
 
 (() => {
   const EGGS = [
-    { id: 'konami', name: 'Opus Mode', hint: 'Un codice antico: su, su, giù, giù…', how: '↑ ↑ ↓ ↓ ← → ← → B A' },
-    { id: 'claude', name: 'Festa a sorpresa', hint: 'Chiamalo con il nome di famiglia.', how: 'Scrivi "claude"' },
-    { id: 'sudo', name: 'Permesso negato', hint: 'Chiedi i superpoteri come in un terminale.', how: 'Scrivi "sudo"' },
-    { id: 'neo', name: 'Pillola rossa', hint: 'Il prescelto ha un nome di tre lettere.', how: 'Scrivi "neo"' },
-    { id: 'dino', name: 'Pensionamento', hint: "Nomina il vecchio campione dell'offline.", how: 'Scrivi "dino"' },
-    { id: 'ciao', name: 'Buone maniere', hint: 'Salutare è gratis.', how: 'Scrivi "ciao"' },
-    { id: 'hat', name: 'Guardaroba', hint: 'Clawd soffre il solletico.', how: 'Clicca Clawd 5 volte nella schermata iniziale' },
-    { id: 'sleep', name: 'Pisolino', hint: 'La pazienza è una virtù.', how: 'Resta fermo nella schermata iniziale' },
-    { id: 'sun', name: 'Interruttore cosmico', hint: "C'è un altro modo per cambiare tema.", how: 'Clicca il sole o la luna' },
-    { id: 's42', name: 'La risposta', hint: 'Vita, universo e tutto quanto.', how: 'Raggiungi 42 token' },
-    { id: 's404', name: 'Punteggio non trovato', hint: 'Un numero che ogni sviluppatore conosce.', how: 'Raggiungi 404 token' },
-    { id: 'compact', name: 'Context window', hint: 'Corri finché il contesto non si riempie.', how: 'Raggiungi 1000 token' },
-    { id: 'offline', name: 'Coerenza', hint: 'Gioca come si deve: senza rete.', how: 'Vai offline per davvero' },
-    { id: 'night', name: 'Nottambulo', hint: 'Certe partite si fanno solo a notte fonda.', how: 'Gioca tra mezzanotte e le 5' },
+    { id: 'konami', name: 'Opus Mode', hint: 'An ancient code: up, up, down, down…', how: '↑ ↑ ↓ ↓ ← → ← → B A' },
+    { id: 'claude', name: 'Surprise party', hint: 'Call it by its family name.', how: 'Type "claude"' },
+    { id: 'sudo', name: 'Permission denied', hint: 'Ask for superpowers, terminal style.', how: 'Type "sudo"' },
+    { id: 'neo', name: 'Red pill', hint: 'The chosen one has a three-letter name.', how: 'Type "neo"' },
+    { id: 'dino', name: 'Retirement', hint: 'Name the old champion of offline.', how: 'Type "dino"' },
+    { id: 'ciao', name: 'Good manners', hint: 'Saying hi is free.', how: 'Type "hello" (or "ciao")' },
+    { id: 'hat', name: 'Wardrobe', hint: 'Clawd is ticklish.', how: 'Click Clawd 5 times on the title screen' },
+    { id: 'sleep', name: 'Nap time', hint: 'Patience is a virtue.', how: 'Stay idle on the title screen' },
+    { id: 'sun', name: 'Cosmic switch', hint: "There's another way to change the theme.", how: 'Click the sun or the moon' },
+    { id: 's42', name: 'The answer', hint: 'Life, the universe and everything.', how: 'Reach 42 tokens' },
+    { id: 's404', name: 'Score not found', hint: 'A number every developer knows.', how: 'Reach 404 tokens' },
+    { id: 'compact', name: 'Context window', hint: 'Run until the context fills up.', how: 'Reach 1000 tokens' },
+    { id: 'offline', name: 'Consistency', hint: 'Play it properly: with no network.', how: 'Actually go offline' },
+    { id: 'night', name: 'Night owl', hint: 'Some runs only happen late at night.', how: 'Play between midnight and 5 am' },
   ];
 
   const found = new Set(Store.get('eggs', []).filter((id) => EGGS.some((e) => e.id === id)));
@@ -34,39 +34,42 @@
     syncCounter();
     AudioSys.sfx.secret();
     const egg = EGGS.find((e) => e.id === id);
-    UI.toast(`Segreto trovato: ${egg.name} (${found.size}/${EGGS.length})`, { egg: true, ms: 4200 });
+    UI.toast(`Secret found: ${egg.name} (${found.size}/${EGGS.length})`, { egg: true, ms: 4200 });
     if (found.size === EGGS.length) {
-      setTimeout(() => { Game.opus(12); UI.toast('Li hai trovati tutti. Clawd è fiero di te.', { egg: true, ms: 6000 }); }, 1200);
+      setTimeout(() => { Game.opus(12); UI.toast('You found them all. Clawd is proud of you.', { egg: true, ms: 6000 }); }, 1200);
     }
     return true;
   }
 
-  /* ----- parole digitate e codice Konami ----- */
+  /* ----- typed words and the Konami code ----- */
+  const hello = () => {
+    unlock('ciao');
+    Game.say(pick(['Hello!', 'Hey there!', 'Hi! Shall we run?', "Good morning! Or good night, I don't own a clock."]), 2.8);
+  };
+
   const WORDS = {
     claude() {
       unlock('claude');
       Game.party();
-      Game.say('È qui la festa?');
+      Game.say('Is this the party?');
     },
     sudo() {
       unlock('sudo');
       UI.toast('clawd is not in the sudoers file. This incident will be reported.', { ms: 4200 });
-      Game.say('Bel tentativo.');
+      Game.say('Nice try.');
     },
     neo() {
       unlock('neo');
       const on = Game.toggleMatrix();
-      Game.say(on ? 'Vedo solo codice.' : 'Bentornato nel mondo reale.');
+      Game.say(on ? 'All I see is code.' : 'Welcome back to the real world.');
     },
     dino() {
       unlock('dino');
       Game.meteor();
-      Game.say('Il dinosauro è in pensione. Adesso corro io.', 3.4);
+      Game.say("The dinosaur retired. I'm the runner now.", 3.4);
     },
-    ciao() {
-      unlock('ciao');
-      Game.say(pick(['Ciao!', 'Ehilà!', 'Ciao, corriamo?', 'Buongiorno! O buonanotte, non ho un orologio.']), 2.8);
-    },
+    hello,
+    ciao: hello,
   };
 
   const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
@@ -82,7 +85,7 @@
       konamiAt = 0;
       unlock('konami');
       Game.opus(9);
-      Game.banner('OPUS MODE: invincibile per 9 secondi', 3);
+      Game.banner('OPUS MODE: invincible for 9 seconds', 3);
     }
 
     if (e.key.length === 1) {
@@ -93,15 +96,15 @@
     }
   });
 
-  /* ----- segreti legati al gioco ----- */
-  const TICKLE = ['Ehi!', 'Fa il solletico!', 'Ancora?', 'Guarda che mi offendo.'];
+  /* ----- game-driven secrets ----- */
+  const TICKLE = ['Hey!', 'That tickles!', 'Again?', "I'm going to be offended."];
   let clicks = 0;
   Game.on('clawdClick', () => {
     clicks++;
     if (clicks < 5) { Game.say(TICKLE[clicks - 1], 1.4); return; }
     unlock('hat');
     const hat = Game.nextHat();
-    Game.say(hat === 'none' ? 'Meglio al naturale.' : 'Come mi sta?', 1.6);
+    Game.say(hat === 'none' ? 'Better au naturel.' : 'How do I look?', 1.6);
     AudioSys.sfx.toggle();
   });
 
@@ -114,8 +117,8 @@
 
   Game.on('score', (score, prev) => {
     const crossed = (n) => prev < n && score >= n;
-    if (crossed(42)) { unlock('s42'); Game.say('42. La risposta.', 2); }
-    if (crossed(404)) { unlock('s404'); Game.glitchHud('404: punteggio non trovato', 2.4); }
+    if (crossed(42)) { unlock('s42'); Game.say('42. The answer.', 2); }
+    if (crossed(404)) { unlock('s404'); Game.glitchHud('404: score not found', 2.4); }
     if (crossed(1000)) { unlock('compact'); Game.banner('Compacting conversation…', 3); Game.squish(); }
   });
 
@@ -123,17 +126,17 @@
     const hour = new Date().getHours();
     if (hour < 5) {
       unlock('night');
-      Game.say('A quest\'ora? Va bene, ma poi a letto.', 3);
+      Game.say('At this hour? Fine, but then bed.', 3);
     }
     if (!navigator.onLine) unlock('offline');
   });
 
   window.addEventListener('offline', () => {
     unlock('offline');
-    UI.toast('Sei offline per davvero. Finalmente un po\' di coerenza.');
+    UI.toast("You're actually offline. Finally, some consistency.");
   });
 
-  /* ----- elenco dei segreti ----- */
+  /* ----- secrets list ----- */
   function renderList() {
     list.textContent = '';
     for (const egg of EGGS) {
@@ -151,24 +154,21 @@
 
   document.getElementById('btnEggs').addEventListener('click', (e) => {
     renderList();
-    if (Game.state === 'playing') Game.togglePause();
-    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+    UI.openDialog(dialog);
     e.currentTarget.blur();
   });
-  document.getElementById('eggClose').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
 
-  /* ----- piccoli extra ----- */
+  /* ----- small extras ----- */
   const baseTitle = document.title;
   document.addEventListener('visibilitychange', () => {
-    document.title = document.hidden ? 'Ehi, torna qui! · Clawd Run' : baseTitle;
+    document.title = document.hidden ? 'Hey, come back! · Clawd Run' : baseTitle;
   });
 
   console.log(
     '%c\n   ██████████\n   ██ ████ ██\n ██████████████\n   ██████████\n   █ █    █ █\n',
     'color:#D97757;font-family:monospace;line-height:1.1'
   );
-  console.log('%cCiao, curiosone. Clawd dice: prova a scrivere "neo" mentre giochi.', 'color:#D97757;font-weight:bold');
+  console.log('%cHi there, curious one. Clawd says: try typing "neo" while you play.', 'color:#D97757;font-weight:bold');
 
   syncCounter();
 })();

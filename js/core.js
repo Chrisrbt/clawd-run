@@ -1,6 +1,6 @@
 'use strict';
 
-/* ---------- piccoli attrezzi condivisi ---------- */
+/* ---------- small shared helpers ---------- */
 
 const Store = {
   get(key, fallback) {
@@ -12,7 +12,7 @@ const Store = {
     }
   },
   set(key, value) {
-    try { localStorage.setItem('clawd.' + key, JSON.stringify(value)); } catch (_) { /* modalità privata */ }
+    try { localStorage.setItem('clawd.' + key, JSON.stringify(value)); } catch (_) { /* private mode */ }
   },
 };
 
@@ -20,7 +20,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-/* ---------- palette: chiaro e scuro, sfumate tra loro ---------- */
+/* ---------- palettes: light and dark, crossfaded ---------- */
 
 const PALETTES = {
   light: {
@@ -48,7 +48,7 @@ for (const name of Object.keys(PALETTES)) {
   for (const key of Object.keys(PALETTES[name])) PAL_RGB[name][key] = hexToRgb(PALETTES[name][key]);
 }
 
-/** t = 0 → chiaro, t = 1 → scuro */
+/** t = 0 → light, t = 1 → dark */
 function mixPalette(t) {
   const out = {};
   for (const key of Object.keys(PAL_RGB.light)) {
@@ -59,7 +59,7 @@ function mixPalette(t) {
 }
 
 /* ---------- pixel art ---------- */
-/* ogni carattere è un pixel: '.' = trasparente, il resto è una chiave colore */
+/* each character is a pixel: '.' = transparent, anything else is a colour key */
 
 const SPR = {
   idle: [
@@ -199,8 +199,8 @@ const SPR = {
 };
 
 /**
- * Disegna uno sprite a pixel. Le righe vengono fuse in strisce orizzontali
- * e leggermente sovrapposte, così non compaiono fessure a scale non intere.
+ * Draws a pixel sprite. Rows are merged into horizontal strips
+ * that overlap slightly, so no seams show up at non-integer scales.
  */
 function drawSprite(ctx, rows, x, y, px, colors) {
   const eps = 0.35;
