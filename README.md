@@ -2,9 +2,11 @@
 
 Un endless runner a pixel con la mascotte di Claude: salta i bug, schiva le finestre di errore, raccogli token. Tutto in HTML, CSS e JavaScript puro, senza dipendenze e senza file audio (la musica è sintetizzata al volo), quindi funziona anche offline.
 
+**Gioca subito: https://chrisrbt.github.io/clawd-run/**
+
 ## Come si gioca
 
-Apri `index.html` nel browser, oppure servi la cartella con un server statico qualsiasi.
+Apri il link qui sopra, oppure `index.html` nel browser in locale.
 
 | Tasto | Azione |
 | --- | --- |
